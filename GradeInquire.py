@@ -66,7 +66,7 @@ def GetScoreHtml(StuNo,StuId):
     cjcx.click()
     return browser
 
-#打印成绩单
+#获取成绩单dict
 def PrintScore(browser):
     ScoreHtml = browser.page_source
     ScoreBFSP = BeautifulSoup(ScoreHtml,'lxml')
@@ -75,7 +75,7 @@ def PrintScore(browser):
     grade = {}
     StuInfo = BeautifulSoup(str(ScoreBFSP.find_all(id = 'Label1')),'lxml')
     stustring = StuInfo.text
-    gradestring = stustring + "\n"
+    grade['stuinfo'] = stustring
     for scoreitem in ScoreText.find_all(align = 'left'):
         scoreinfo = BeautifulSoup(str(scoreitem),'lxml')
         i = 0
@@ -87,19 +87,47 @@ def PrintScore(browser):
                 if tdd.text != u'\xa0':
                     grade[key] = tdd.text
             i = i + 1
-    for k,v in grade.items():
-        #print("科目:" +k)
-        gradestring = gradestring + "科目：" + k + "\n"
-        #print("成绩:"+v)
-        gradestring = gradestring + "成绩：" + v + "\n"
+    return grade
 
+#构造成绩单
+def GetGradeString(grade):
+    gradestring = grade['stuinfo'] + '\n'
+    for k,v in grade.items():
+        if k == 'stuinfo':
+            continue
+        else:
+            # print("科目:" +k)
+            gradestring = gradestring + "科目：" + k + "\n"
+            # print("成绩:"+v)
+            gradestring = gradestring + "成绩：" + v + "\n"
     return gradestring
+
+#获取收件人
+def GetRecipient(grade):
+    str = grade['stuinfo'][13:]
+    name = ""
+    i = 0
+    flag = 0
+    while(str[i] != '性'):
+        if str[i] == '：':
+            flag = 1
+            i += 1
+            continue
+        if flag == 0:
+            i += 1
+            continue
+        elif flag == 1:
+            name += str[i]
+            i += 1
+    return name.strip()
 
 if __name__ == '__main__':
     StuInfo = Student('','')
     browser = GetScoreHtml(StuInfo.StuNo,StuInfo.StuId)
     grade = PrintScore(browser)
+    gradestring = GetGradeString(grade)
+    recipient = GetRecipient(grade)
     browser.close()
     mailinfo = MailInfo('','','','')
-    msg = SetMailHead(grade,mailinfo)
+    msg = SetMailHead(recipient,gradestring,mailinfo)
     SendEmail(mailinfo,msg)
