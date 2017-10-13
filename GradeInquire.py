@@ -148,7 +148,6 @@ def Compare(file_name,contents):
     else:
         return False
 
-
 if __name__ == '__main__':
     StuInfo = Student('','')
     browser = GetScoreHtml(StuInfo.StuNo,StuInfo.StuId)
