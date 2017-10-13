@@ -7,7 +7,9 @@ from email.header import Header
 from email.mime.text import MIMEText
 from email.utils import parseaddr,formataddr
 import smtplib
-
+import pickle
+import os
+import operator
 
 #学生信息
 class Student(object):
@@ -29,11 +31,11 @@ def _format_addr(s):
     return formataddr((Header(name,'utf-8').encode(),addr))
 
 #设置邮件抬头
-def SetMailHead(recipient,grade,mailinfo):
+def SetMailHead(recipient,newgrade,grade,mailinfo):
     msg = MIMEText(grade,'plain','utf-8')
     msg['From'] = _format_addr('管理员<%s>' %mailinfo.from_addr)
     msg['To'] = _format_addr(recipient+'<%s>'%mailinfo.to_addr)
-    msg['Subject'] = Header(recipient+'的成绩单','utf-8').encode()
+    msg['Subject'] = Header(newgrade,'utf-8').encode()
     return msg
 
 #发送邮件
@@ -44,11 +46,6 @@ def SendEmail(mailinfo,msg):
     server.sendmail(mailinfo.from_addr,[mailinfo.to_addr],msg.as_string())
     server.quit()
 
-#保存到本地
-def SavetoLocal(title,contents):
-    file = open(title+'.txt','w',encoding='utf-8')
-    file.write(contents)
-    file.close()
 
 #读取成绩
 def GetScoreHtml(StuNo,StuId):
@@ -121,6 +118,37 @@ def GetRecipient(grade):
             i += 1
     return name.strip()
 
+#保存到本地
+def SavetoLocal(file_name,contents):
+    data = pickle.dumps(obj = contents)
+    with open(file_name+'.pickle', mode= 'wb') as fp:
+        fp.write(data)
+
+#比较本地成绩单
+def Compare(file_name,contents):
+    flag = 0
+    newsubject = {}
+    if os.path.exists(file_name+'.pickle'):
+        with open(file_name+'.pickle', mode='rb') as fp:
+            data = pickle.loads(fp.read())
+            if operator.eq(data,contents):
+                return False
+            else:
+                for key in contents:
+                    if key in data:
+                        continue
+                    else:
+                        newsubject[key] = contents[key]
+                        SavetoLocal(file_name,contents)
+                        flag = 1
+    else:
+        SavetoLocal(file_name, contents)
+    if flag == 1:
+        return newsubject
+    else:
+        return False
+
+
 if __name__ == '__main__':
     StuInfo = Student('','')
     browser = GetScoreHtml(StuInfo.StuNo,StuInfo.StuId)
@@ -128,6 +156,11 @@ if __name__ == '__main__':
     gradestring = GetGradeString(grade)
     recipient = GetRecipient(grade)
     browser.close()
-    mailinfo = MailInfo('','','','')
-    msg = SetMailHead(recipient,gradestring,mailinfo)
-    SendEmail(mailinfo,msg)
+    comflag = Compare(recipient,grade)
+    if comflag:
+        newsubject = ""
+        for key in comflag:
+            newsubject += '科目:'+key+' 成绩:'+comflag[key]+'|'
+        mailinfo = MailInfo('', '', '', '')
+        msg = SetMailHead(recipient,newsubject, gradestring, mailinfo)
+        SendEmail(mailinfo, msg)
