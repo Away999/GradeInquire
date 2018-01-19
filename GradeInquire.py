@@ -21,7 +21,7 @@ class Student(object):
 class MailInfo(object):
     def __init__(self, from_addr, password, to_addr, smtp_server):
         self.from_addr = '619132253@qq.com'
-        self.password = 'zcvhqqmrnauvbcbg'
+        self.password = 'hkdbwoljhxzfbcfb'
         self.to_addr = 'weixiaonienie@qq.com'
         self.smtp_server = 'smtp.qq.com'
 
@@ -56,9 +56,9 @@ def GetScoreHtml(StuNo,StuId):
     elem_IdNum = browser.find_element_by_id("TextBox2")
     elem_IdNum.send_keys(StuId)
     elem_XN = browser.find_element_by_id("drop_xn")
-    elem_XN.send_keys("2016-2017")
+    elem_XN.send_keys("2017-2018")
     elem_XQ = browser.find_element_by_id("drop_xq")
-    elem_XQ.send_keys("2")
+    elem_XQ.send_keys("1")
     cjcx = browser.find_element_by_id("Button_cjcx")
     cjcx.click()
     return browser
@@ -143,6 +143,12 @@ def Compare(file_name,contents):
                         flag = 1
     else:
         SavetoLocal(file_name, contents)
+        with open(file_name + '.pickle', mode='rb') as fp:
+            data = pickle.loads(fp.read())
+            for key in contents:
+                newsubject[key] = contents[key]
+                SavetoLocal(file_name, contents)
+                flag = 1
     if flag == 1:
         return newsubject
     else:
@@ -159,7 +165,10 @@ if __name__ == '__main__':
     if comflag:
         newsubject = ""
         for key in comflag:
-            newsubject += '科目:'+key+' 成绩:'+comflag[key]+'|'
+            if key == 'stuinfo':
+                continue
+            else:
+                newsubject += '科目:'+key+' 成绩:'+comflag[key]+'|'
         mailinfo = MailInfo('', '', '', '')
         msg = SetMailHead(recipient,newsubject, gradestring, mailinfo)
         SendEmail(mailinfo, msg)
